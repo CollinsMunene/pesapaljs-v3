@@ -33,6 +33,6 @@
   "author": "Collins Munene <collinshillary1@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "requests": "^0.3.0"
+    "axios": "^1.4.0"
   }
 }
