@@ -4,21 +4,33 @@
 
 ### Goal
 
-Make it easy to integrate [PesaPal](https://www.pesapal.com) into a website or mobile app AND most importantly allow one
-to customize the payment user interface.
+Make it easy to integrate [PesaPal](https://www.pesapal.com) into a website or mobile app.
 
 ### Core Features
-- `paymentListener`: `express` middleware that parses PesaPal payment notifications.
+- `init(options)` : Initialize Package. `options` should contain  a `key` , a `secret` and `debug` together.
 
-- `getPaymentStatus(options)` : Get status of a payment. `options` should contain either a `reference` alone or a `reference` and `transaction` together.
+- `authenticate()`: Authenticate with pesapal servers and set bearer token.
 
-- `getPaymentDetails(options`): Get all information about a payment. `options` should contain a `reference` and a `transaction`.
+- `register_ipn_url(options)`: Register an IPN url, that will be used by pesapal to inform your server on any changes. `options` should contain a `url` and a `ipn_notification_type`.
 
-- `getPaymentURL(order, callbackURI)`: Get a signed URL to the PesaPal payment page.
+- `get_ipn_list()`: Returns the list of registered IPN's
 
-- `makeOrder(order, paymentMethod)`: Prepare an order for payment on a custom UI.
+- `submit_order(options)`: Initiates an order to pesapal and returns the iframe src url. `options` should include, `id` -unique system generated id, `currency` - if KES or other, `amount`,`description`,`callback_url`  - to where the user will be redirected to on the UI , `notification_id` - unique id associated with yout IPN url, `billing_address` - an object with user details as such `{
+  "email_address": "john.doe@example.com",
+  "phone_number": None,
+  "country_code": "",
+  "first_name": "John",
+  "middle_name": "",
+  "last_name": "Doe",
+  "line_1": "",
+  "line_2": "",
+  "city": "",
+  "state": "",
+  "postal_code": None,
+  "zip_code": None
+  }`
 
-- `payOrder(order, paymentDetails)`: After a successful call to `makeOrder`, pay an order with details collected through a custom UI.
+- `get_transaction_status(oPTIONS)`: Returns the status details of a trasaction. `options` should include `OrderTrackingId` that you receives from the callback.
 
 ### Usage
 
@@ -40,85 +52,77 @@ var PesaPal = require('pesapaljs-v3').init({
 ```
 When the `debug` option is set, `pesapaljs-v3` will use the `cybqa.pesapal.com*` endpoints.
     
-###### Listen for payment notifications
+###### Authenticate with pesapal
 ```javascript
 
-// Listen for IPNs (With an express app)
-// Use localtunnel or similar tools to test IPN when running on localhost
-app.get('/ipn', PesaPal.paymentListener, function(req, res) { 
-    var payment = req.payment;
-    // do stuff with payment {transaction, method, status, reference}
-    
-    // DO NOT res.send()
-});
+// initiate an authentication with the package
+PesaPal.authenticate();
 
 ```
     
-###### Check Payment info
+###### POST an IPN url
 ```javascript
 
 var options = {
-    reference: "42314123", // Send this
-    transaction: "175c6485-0948-4cb9-8d72-05a2c3f25be5" // or both.
+    url: "ngrok.something/ipn", 
+    ipn_notification_type: "GET" 
 };
-PesaPal.getPaymentStatus(options)
+PesaPal.register_ipn_url(options)
         .then(function(status){ /* do stuff*/ })
         .catch(function(error){ /* do stuff*/ });
 
-PesaPal.getPaymentDetails(options)
-        .then(function (payment) {
-            //payment -> {transaction, method, status, reference}
-            //do stuff
-        })
-        .catch(function (error) { /* do stuff*/  });
+```
+
+###### GET registered IPN list
+```javascript
+
+PesaPal.get_ipn_list()
+        .then(function(status){ /* do stuff*/ })
+        .catch(function(error){ /* do stuff*/ });
 
 ```
     
-###### Make a direct order
-Make your customer pay on PesaPal's page:
-
+###### POST an order request
 ```javascript
 
-var customer = new PesaPal.Customer("kariuki@pesapal.com");
-var order = new PesaPal.Order("42314123", customer, "Ma ndazi", 1679.50, "KES", "MERCHANT");
+PesaPal.submit_order({
+    "id": 231323, //generate some unique value, probably use uuid.
+    "currency": "KES",
+    "amount": 10,
+    "description": "payment for masterclass", // transaction description
+    "callback_url": "https://some.com/home", //front end url for redirect
+    "notification_id": "b3699d97-1c04-45b5-8062-de69d6dad9a1", //IPN url
+    "billing_address": {
+        "email_address": "johndoe@mail.com",
+        "phone_number": "",
+        "country_code": "KE",
+        "first_name": "John",
+        "middle_name": "",
+        "last_name": "Doe",
+        "line_1": "",
+        "line_2": "",
+        "city": "",
+        "state": "",
+        "postal_code": "",
+        "zip_code": ""
+    }
+})
+        .then(function(status){ /* do stuff*/ })
+        .catch(function(error){ /* do stuff*/ });
 
-// Redirect user to PesaPal
-var url = PesaPal.getPaymentURL(order, "http://mysite.co.ke/callback");
-// send it to an iframe ?
+
 
 ```
 
-Or make your own awesome payment UI (web page, mobile app front-end, etc.):
-
+###### GET transaction status 
 ```javascript
 
-var customer = new PesaPal.Customer("john@pesapal.com");
-var order = new PesaPal.Order("WSDE0RFCC", customer, "Maziwa", 100, "KES", "MERCHANT");
+PesaPal.get_transaction_status({
+    OrderTrackingId:OrderTrackingId // ensure you get the spelling correct!
+  })
+        .then(function(status){ /* do stuff*/ })
+        .catch(function(error){ /* do stuff*/ });
 
-// place order directly with your own UI
-
-PesaPal.makeOrder(order, method) // First make the order
-
-    .then(function (processedOrder) { // then collect payment details from user
-        // Get payment details from user, DB - like their credit card info ;) or whatever
-        // ...
-        
-        return Promise.resolve({
-            order: processedOrder, 
-            paymentDetails: new PesaPal.MobileMoney("254728988983","DEWEDWED")
-        });
-        
-    }).then(function(collected) => { // then send payment request
-        return PesaPal.payOrder(collected.order, collected.paymentDetails)
-    })
-    .then(function(resp) { // finally, receive a transaction id
-        // resp.reference Your order, reference (42314123)
-        // resp.transaction Payment transaction ID from PesaPal
-        
-    })
-    .catch(function(error) {
-        // Yo something went horribly wrong!
-    });
 ```
 
 ### Contributing
@@ -130,4 +134,4 @@ PesaPal.makeOrder(order, method) // First make the order
 
 ### Bugs & Issues
 
-To report bugs (or any other issues), use the [issues page](https://github.com/aksalj/pesapaljs/issues).
+To report bugs (or any other issues), use the [issues page](https://github.com/CollinsMunene/pesapaljs-v3/issues).

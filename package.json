@@ -1,11 +1,11 @@
 {
   "name": "pesapaljs-v3",
   "version": "1.0.12",
-  "description": "Integrate PesaPal into your Node application",
-  "homepage": "https://github.com/CollinsMunene/ch-pesapaljs-v3",
+  "description": "Integrate PesaPal into your Node application v3",
+  "homepage": "https://github.com/CollinsMunene/pesapaljs-v3",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CollinsMunene/ch-pesapaljs-v3.git"
+    "url": "git+https://github.com/CollinsMunene/pesapaljs-v3.git"
   },
   "bugs": {
     "url": "https://github.com/CollinsMunene/pesapaljs-v3/issues"
