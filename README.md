@@ -15,7 +15,7 @@ Make it easy to integrate [PesaPal](https://www.pesapal.com) into a website or m
 
 - `get_ipn_list()`: Returns the list of registered IPN's
 
-- `submit_order(options)`: Initiates an order to pesapal and returns the iframe src url. `options` should include, `id` -unique system generated id, `currency` - if KES or other, `amount`, `description`, `callback_url`  - to where the user will be redirected to on the UI, `notification_id` - unique id associated with your IPN URL, `billing_address` - an object with user details as such `{
+- `submit_order(options)`: Initiates an order to Pesapal and returns the iframe src url. `options` should include, `id` -unique system generated id, `currency` - if KES or other, `amount`, `description`, `callback_url`  - to where the user will be redirected to on the UI, `notification_id` - unique id associated with your IPN URL, `billing_address` - an object with user details as such `{
   "email_address": "john.doe@example.com",
   "phone_number": None,
   "country_code": "",
